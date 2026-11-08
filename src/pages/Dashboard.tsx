@@ -3,22 +3,33 @@ import { compareToAverage } from '../../shared/calc';
 import type { VehicleReport } from '../../shared/types';
 import { api } from '../api';
 import { LazyChart } from '../charts/LazyChart';
-import { Icon } from '../components/Icon';
-import { EmptyState, ErrorBox, SkeletonCards, StatCard } from '../components/ui';
+import { AnimatedNumber } from '../components/AnimatedNumber';
+import { BikeLogo } from '../components/BikeLogo';
 import { FuelLeftCard } from '../components/FuelLeftCard';
+import { Icon } from '../components/Icon';
+import { EmptyState, ErrorBox, Skeleton, SkeletonCards, StatCard } from '../components/ui';
 import { VehicleSwitcher } from '../components/VehicleSwitcher';
 import {
+  capitalize,
   fixed,
   formatDate,
   money,
   num,
-  percentText,
   perLiter,
   shortDate,
   todayISO,
   unitLabel,
 } from '../format';
 import { errorText, useApp } from '../store';
+
+function greeting(): string {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+}
+
+function longToday(): string {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
 
 export function Dashboard() {
   const {
@@ -37,6 +48,11 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const today = todayISO();
+  const u = settings.distance_unit;
+  const cur = settings.currency;
+  const fmt1 = useCallback((n: number) => fixed(n, 1), []);
+  const fmtMoney = useCallback((n: number) => money(n, cur), [cur]);
+  const fmtInt = useCallback((n: number) => num(n, 0), []);
 
   const load = useCallback(() => {
     setError(null);
@@ -54,15 +70,18 @@ export function Dashboard() {
   if (vehicles === null) return <SkeletonCards />;
   if (!activeVehicles.length) {
     return (
-      <EmptyState
-        title="Add your first vehicle to start"
-        text="Tell RideLog about your bike, scooter or car. Then log each fill-up to see your mileage."
-        action={
-          <a href="#/vehicles?new=1" className="btn btn-primary">
-            <Icon name="plus" /> Add a vehicle
-          </a>
-        }
-      />
+      <div className="stack">
+        <Greeting />
+        <EmptyState
+          title="Add your first vehicle to start"
+          text="Tell RideLog about your bike, scooter or car. Then log each fill-up to see your mileage."
+          action={
+            <a href="#/vehicles?new=1" className="btn btn-primary">
+              <Icon name="plus" /> Add a vehicle
+            </a>
+          }
+        />
+      </div>
     );
   }
 
@@ -98,80 +117,120 @@ export function Dashboard() {
 
   return (
     <div className="stack">
+      <Greeting />
       <VehicleSwitcher vehicles={activeVehicles} value={selected} onChange={setSelected} />
       {error && <ErrorBox message={error} onRetry={load} />}
-      {!reports && !error && <SkeletonCards />}
-      {reports && (current ? vehicleView(current) : allView(reports, setSelected))}
-
-      <a
-        href={`#/add${current ? `?vehicle=${current.vehicle.id}` : ''}`}
-        className="btn btn-primary btn-big btn-block"
-      >
-        <Icon name="plus" /> Add fuel
-      </a>
-
-      {current && (
-        <button
-          type="button"
-          className={`btn btn-block ${current.noRideToday ? 'btn-pressed' : 'btn-secondary'}`}
-          aria-pressed={current.noRideToday}
-          disabled={busy}
-          onClick={() => toggleNoRide(current)}
-        >
-          <Icon name={current.noRideToday ? 'check' : 'noride'} />
-          {current.noRideToday ? 'Today is marked as no-ride (tap to undo)' : "I didn't ride today"}
-        </button>
+      {!reports && !error && (
+        <>
+          <Skeleton height={180} radius={20} />
+          <SkeletonCards />
+        </>
       )}
-      {!current && reports && (
-        <p className="muted small center">Pick a vehicle above to mark today as a no-ride day.</p>
-      )}
+      {reports && (current ? vehicleView(current) : allView(reports))}
     </div>
   );
 
+  function quickActions(r: VehicleReport | null) {
+    return (
+      <div className="quick">
+        <a
+          href={`#/add${r ? `?vehicle=${r.vehicle.id}` : ''}`}
+          className="btn btn-primary btn-big quick-main"
+        >
+          <Icon name="plus" /> Add fuel
+        </a>
+        {r && (
+          <button
+            type="button"
+            className={`btn btn-big ${r.noRideToday ? 'btn-pressed' : 'btn-secondary'}`}
+            aria-pressed={r.noRideToday}
+            disabled={busy}
+            onClick={() => toggleNoRide(r)}
+          >
+            <Icon name={r.noRideToday ? 'check' : 'noride'} />
+            {r.noRideToday ? 'No ride today ✓' : 'No ride today'}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   function vehicleView(r: VehicleReport) {
-    const u = settings.distance_unit;
     const s = r.summary;
-
     const diff =
-      s.lastKmPerLiter !== null ? compareToAverage(s.lastKmPerLiter, s.avgKmPerLiter) : null;
+      s.lastKmPerLiter !== null && s.periodCount > 1
+        ? compareToAverage(s.lastKmPerLiter, s.avgKmPerLiter)
+        : null;
+    const rounded = diff === null ? 0 : Math.round(diff);
 
-    if (!r.entryCount) {
-      return (
-        <EmptyState
-          icon="fuel"
-          title="No fill-ups yet"
-          text={`Add your first fill-up for ${r.vehicle.name}. Fill the tank full, then add it here.`}
-        />
-      );
-    }
     return (
       <>
+        <section className="hero" style={{ ['--vc' as string]: r.vehicle.color_tag }}>
+          <div className="hero-top">
+            <span className="hero-chip">
+              <span className="dot" style={{ background: r.vehicle.color_tag }} />
+              {r.vehicle.name}
+            </span>
+            <span className="hero-meta">
+              {capitalize(r.vehicle.type)}
+              {r.vehicle.plate_number ? ` · ${r.vehicle.plate_number}` : ''}
+            </span>
+          </div>
+          <div className="hero-main">
+            <div>
+              <div className="hero-label">Average mileage</div>
+              {s.periodCount ? (
+                <div className="hero-value">
+                  <AnimatedNumber value={s.avgKmPerLiter} format={fmt1} />
+                  <span className="hero-unit">{perLiter(u)}</span>
+                </div>
+              ) : (
+                <div className="hero-value hero-empty">Not yet</div>
+              )}
+              {diff !== null ? (
+                <span className={`hero-badge ${rounded >= 0 ? 'up' : 'down'}`}>
+                  {rounded >= 0 ? '▲' : '▼'} Last fill {Math.abs(rounded)}%{' '}
+                  {rounded >= 0 ? 'better' : 'worse'}
+                </span>
+              ) : (
+                <span className="hero-badge">
+                  {r.entryCount
+                    ? 'Fill the tank full again to see results'
+                    : 'Add your first full tank'}
+                </span>
+              )}
+            </div>
+            <BikeLogo size={124} className="hero-bike" />
+          </div>
+          <div className="hero-road" aria-hidden="true" />
+        </section>
+
+        {quickActions(r)}
+
         <div className="stat-grid">
           <StatCard
+            icon="gauge"
             label="Last mileage"
-            value={s.lastKmPerLiter !== null ? `${fixed(s.lastKmPerLiter)} ${perLiter(u)}` : '–'}
-            hint={diff !== null && s.periodCount > 1 ? percentText(diff) : undefined}
-            tone={diff !== null && Math.round(diff) !== 0 ? (diff > 0 ? 'good' : 'bad') : undefined}
+            amount={s.lastKmPerLiter}
+            format={(n) => `${fixed(n)} ${perLiter(u)}`}
           />
           <StatCard
-            label="Average mileage"
-            value={s.periodCount ? `${fixed(s.avgKmPerLiter)} ${perLiter(u)}` : '–'}
-          />
-          <StatCard
+            icon="wallet"
             label={`Cost per ${unitLabel(u)}`}
-            value={s.periodCount ? money(s.avgCostPerKm, settings.currency) : '–'}
+            amount={s.periodCount ? s.avgCostPerKm : null}
+            format={fmtMoney}
           />
-          <StatCard label="Spent this month" value={money(r.monthSpent, settings.currency)} />
+          <StatCard icon="fuel" label="Spent this month" amount={r.monthSpent} format={fmtMoney} />
+          <StatCard
+            icon="road"
+            label={`${unitLabel(u)} tracked`}
+            amount={s.totalDistance}
+            format={fmtInt}
+          />
         </div>
 
-        <FuelLeftCard key={r.vehicle.id} r={r} />
+        {r.entryCount > 0 && <FuelLeftCard key={r.vehicle.id} r={r} />}
 
-        {!s.periodCount && (
-          <div className="alert alert-info">
-            Your first full tank is your starting point. Fill the tank full again next time to see
-            your first mileage.
-          </div>
-        )}
         {r.pending && (
           <div className="alert alert-info">
             <strong>Waiting for next full tank.</strong> {r.pending.partialFills} part fill
@@ -181,12 +240,14 @@ export function Dashboard() {
           </div>
         )}
 
-        {r.periods.length > 1 && <TrendCard periods={r.periods} unit={u} />}
+        {r.periods.length > 1 && (
+          <TrendCard periods={r.periods} unit={u} color={r.vehicle.color_tag} />
+        )}
 
         {r.lastEntry && (
-          <p className="muted small">
-            Last fill-up: {formatDate(r.lastEntry.entry_date, settings.date_format)} at{' '}
-            {num(r.lastEntry.odometer, 1)} {unitLabel(u)}.
+          <p className="muted small center">
+            Last fill-up {formatDate(r.lastEntry.entry_date, settings.date_format)} at{' '}
+            {num(r.lastEntry.odometer, 1)} {unitLabel(u)}
           </p>
         )}
         <p className="note">
@@ -197,40 +258,66 @@ export function Dashboard() {
     );
   }
 
-  function allView(reports: VehicleReport[], onPick: (id: string) => void) {
-    const u = settings.distance_unit;
-    const spent = reports.reduce((a, r) => a + r.monthSpent, 0);
-    const dist = reports.reduce((a, r) => a + r.summary.totalDistance, 0);
-    const cost = reports.reduce((a, r) => a + r.summary.totalCost, 0);
+  function allView(list: VehicleReport[]) {
+    const spent = list.reduce((a, r) => a + r.monthSpent, 0);
+    const dist = list.reduce((a, r) => a + r.summary.totalDistance, 0);
+    const cost = list.reduce((a, r) => a + r.summary.totalCost, 0);
     return (
       <>
+        <section className="hero">
+          <div className="hero-top">
+            <span className="hero-chip">All vehicles</span>
+            <span className="hero-meta">{list.length} active</span>
+          </div>
+          <div className="hero-main">
+            <div>
+              <div className="hero-label">Spent this month</div>
+              <div className="hero-value">
+                <AnimatedNumber value={spent} format={fmtMoney} />
+              </div>
+              <span className="hero-badge">
+                {num(dist, 0)} {unitLabel(u)} tracked in total
+              </span>
+            </div>
+            <BikeLogo size={124} className="hero-bike" />
+          </div>
+          <div className="hero-road" aria-hidden="true" />
+        </section>
+
+        {quickActions(null)}
+
         <div className="stat-grid">
-          <StatCard label="Spent this month" value={money(spent, settings.currency)} />
-          <StatCard label={`Total ${unitLabel(u)} tracked`} value={num(dist, 0)} />
           <StatCard
+            icon="wallet"
             label={`Cost per ${unitLabel(u)}`}
-            value={dist ? money(cost / dist, settings.currency) : '–'}
+            amount={dist ? cost / dist : null}
+            format={fmtMoney}
           />
-          <StatCard label="Vehicles" value={String(reports.length)} />
+          <StatCard icon="fuel" label="Total spent" amount={cost} format={fmtMoney} />
         </div>
+
+        <h2 className="section-title">Your vehicles</h2>
         <div className="list">
-          {reports.map((r) => (
+          {list.map((r) => (
             <button
               key={r.vehicle.id}
               type="button"
               className="card vehicle-row"
-              onClick={() => onPick(r.vehicle.id)}
+              onClick={() => setSelected(r.vehicle.id)}
             >
               <span
                 className="color-bar"
                 style={{ background: r.vehicle.color_tag }}
                 aria-hidden="true"
               />
+              <span className="vr-avatar" style={{ color: r.vehicle.color_tag }}>
+                <BikeLogo size={34} animated={false} />
+              </span>
               <span className="vr-main">
                 <strong>{r.vehicle.name}</strong>
                 <span className="muted small">
                   {r.summary.periodCount
-                    ? `Last ${fixed(r.summary.lastKmPerLiter)} · Avg ${fixed(r.summary.avgKmPerLiter)} ${perLiter(u)}`
+                    ? `Avg ${fixed(r.summary.avgKmPerLiter)} ${perLiter(u)} · last ${fixed(r.summary.lastKmPerLiter)}`
                     : r.entryCount
                       ? 'Waiting for the next full tank'
                       : 'No fill-ups yet'}
@@ -238,37 +325,58 @@ export function Dashboard() {
               </span>
               <span className="vr-side">
                 <span className="small muted">This month</span>
-                <strong>{money(r.monthSpent, settings.currency)}</strong>
+                <strong>{money(r.monthSpent, cur)}</strong>
               </span>
             </button>
           ))}
         </div>
+        <p className="muted small center">Pick a vehicle to mark today as a no-ride day.</p>
       </>
     );
   }
 }
 
+function Greeting() {
+  return (
+    <header className="greet">
+      <p className="greet-hello">{greeting()} 👋</p>
+      <p className="greet-date">{longToday()}</p>
+    </header>
+  );
+}
+
 function TrendCard({
   periods: all,
   unit,
+  color,
 }: {
   periods: VehicleReport['periods'];
   unit: 'km' | 'miles';
+  color: string;
 }) {
   const periods = useMemo(() => all.slice(-10), [all]);
   const labels = useMemo(() => periods.map((p) => shortDate(p.endDate)), [periods]);
   const series = useMemo(
-    () => [{ label: perLiter(unit), data: periods.map((p) => Math.round(p.kmPerLiter * 10) / 10) }],
-    [periods, unit],
+    () => [
+      {
+        label: perLiter(unit),
+        data: periods.map((p) => Math.round(p.kmPerLiter * 10) / 10),
+        color,
+      },
+    ],
+    [periods, unit, color],
   );
   return (
     <section className="card">
-      <h2 className="card-title">Mileage, last {periods.length} fills</h2>
+      <div className="card-head">
+        <h2 className="card-title">Mileage trend</h2>
+        <span className="muted small">Last {periods.length} full tanks</span>
+      </div>
       <LazyChart
         type="line"
         labels={labels}
         series={series}
-        height={170}
+        height={180}
         ariaLabel={`Mileage trend in ${perLiter(unit)}`}
       />
     </section>

@@ -1,6 +1,6 @@
 // RideLog service worker: makes the app installable and opens fast.
 // API calls are never cached, so numbers are always fresh.
-const CACHE = 'ridelog-v1';
+const CACHE = 'ridelog-v2';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {

@@ -7,14 +7,77 @@
       name="description"
       content="RideLog - track fuel, mileage and riding days for your bike, scooter or car."
     />
-    <meta name="theme-color" content="#1E3A8A" />
+    <meta name="theme-color" content="#F4F6FB" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
     <title>RideLog</title>
+    <style>
+      /* Splash shown until the app loads (React replaces #root content). */
+      body {
+        margin: 0;
+        background: #f4f6fb;
+      }
+      .splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 14px;
+        font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+        color: #0b1b45;
+      }
+      .splash-mark {
+        display: grid;
+        place-items: center;
+        width: 112px;
+        height: 112px;
+        border-radius: 30px;
+        background: linear-gradient(135deg, #0b1b45, #1a3a9a 58%, #2f6df6);
+        color: #fff;
+        box-shadow: 0 16px 36px rgb(29 78 216 / 35%);
+      }
+      .splash b {
+        font-size: 1.4rem;
+        letter-spacing: -0.02em;
+      }
+      .splash .w {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: s-spin 0.8s linear infinite;
+      }
+      @keyframes s-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="splash" aria-label="Loading RideLog">
+        <div class="splash-mark">
+          <svg width="80" height="60" viewBox="0 0 64 48" fill="none" stroke="currentColor"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <g class="w" stroke-width="3"><circle cx="17" cy="35" r="8.5" /><path d="M17 29v12M11 35h12" stroke-width="1.4" /></g>
+            <g class="w" stroke-width="3"><circle cx="49" cy="35" r="8.5" /><path d="M49 29v12M43 35h12" stroke-width="1.4" /></g>
+            <path d="M17 35 25 24h15l9 11" stroke-width="3" />
+            <path d="M27 24l5 11h8" stroke-width="2.6" />
+            <path d="M21 21h10" stroke-width="3.6" />
+            <path d="M32 21.5c2-3 7-3.5 9-1.5l-1 4H32z" fill="currentColor" stroke-width="1.5" />
+            <path d="M49 35 43 14M39 13h7" stroke-width="2.8" />
+          </svg>
+        </div>
+        <b>RideLog</b>
+      </div>
+    </div>
     <noscript>Please turn on JavaScript to use RideLog.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

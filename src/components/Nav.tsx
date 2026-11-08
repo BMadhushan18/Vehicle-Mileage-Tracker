@@ -1,3 +1,4 @@
+import { BikeLogo } from './BikeLogo';
 import { Icon, type IconName } from './Icon';
 
 interface Item {
@@ -47,8 +48,13 @@ export function SideNav({ path }: { path: string }) {
   return (
     <nav className="side-nav" aria-label="Main">
       <div className="brand">
-        <span className="brand-dot" aria-hidden="true" />
-        RideLog
+        <span className="brand-mark">
+          <BikeLogo size={30} />
+        </span>
+        <span>
+          RideLog
+          <small>Mileage &amp; fuel</small>
+        </span>
       </div>
       <a href="#/add" className="btn btn-primary btn-block side-add">
         <Icon name="plus" /> Add fuel
@@ -72,10 +78,19 @@ export function SideNav({ path }: { path: string }) {
 }
 
 /** Mobile top bar: title + quick links to the screens not in the bottom bar. */
-export function TopBar({ title }: { title: string }) {
+export function TopBar({ title, home }: { title: string; home?: boolean }) {
   return (
     <header className="top-bar">
-      <h1 className="top-title">{title}</h1>
+      {home ? (
+        <h1 className="top-title top-brand">
+          <span className="brand-mark">
+            <BikeLogo size={28} />
+          </span>
+          RideLog
+        </h1>
+      ) : (
+        <h1 className="top-title">{title}</h1>
+      )}
       <div className="top-actions">
         <a href="#/history" className="icon-btn" aria-label="Fuel history">
           <Icon name="history" />

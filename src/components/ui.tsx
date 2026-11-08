@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Icon } from './Icon';
+import { AnimatedNumber } from './AnimatedNumber';
+import { BikeLogo } from './BikeLogo';
+import { Icon, type IconName } from './Icon';
 
 export function Skeleton({
   height = 16,
@@ -42,8 +44,8 @@ export function EmptyState({
 }) {
   return (
     <div className="empty card">
-      <div className="empty-icon">
-        <Icon name={icon} size={32} />
+      <div className={`empty-icon${icon === 'bike' ? ' empty-bike' : ''}`}>
+        {icon === 'bike' ? <BikeLogo size={72} /> : <Icon name={icon} size={30} />}
       </div>
       <h2>{title}</h2>
       {text && <p className="muted">{text}</p>}
@@ -55,18 +57,38 @@ export function EmptyState({
 export function StatCard({
   label,
   value,
+  amount,
+  format,
   hint,
   tone,
+  icon,
 }: {
   label: string;
-  value: string;
+  value?: string;
+  /** When given with format, the number counts up. */
+  amount?: number | null;
+  format?: (n: number) => string;
   hint?: string;
   tone?: 'good' | 'bad';
+  icon?: IconName;
 }) {
   return (
     <div className="card stat">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
+      <div className="stat-top">
+        <span className="stat-label">{label}</span>
+        {icon && (
+          <span className="stat-icon">
+            <Icon name={icon} size={18} />
+          </span>
+        )}
+      </div>
+      <div className="stat-value">
+        {amount != null && format ? (
+          <AnimatedNumber value={amount} format={format} />
+        ) : (
+          (value ?? '–')
+        )}
+      </div>
       {hint && <div className={`stat-hint${tone ? ` tone-${tone}` : ''}`}>{hint}</div>}
     </div>
   );

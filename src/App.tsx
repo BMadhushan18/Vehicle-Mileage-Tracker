@@ -56,10 +56,12 @@ export function App() {
       <div className="layout">
         <SideNav path={path} />
         <div className="content">
-          <TopBar title={title} />
+          <TopBar title={title} home={path === '/'} />
           <main id="main" className="main" tabIndex={-1}>
             <Suspense fallback={<SkeletonCards />}>
-              <Screen path={path} query={query} />
+              <div className="page" key={path}>
+                <Screen path={path} query={query} />
+              </div>
             </Suspense>
           </main>
         </div>

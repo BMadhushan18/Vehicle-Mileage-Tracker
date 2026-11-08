@@ -20,6 +20,10 @@ const PATHS = {
   download: 'M12 4v12M6 10l6 6 6-6M4 20h16',
   upload: 'M12 20V8M6 14l6-6 6 6M4 4h16',
   noride: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM5.6 5.6l12.8 12.8',
+  gauge: 'M12 14l4-4M3.5 18a9 9 0 1 1 17 0M12 5v1.5M5.6 8.6l1 1M18.4 8.6l-1 1',
+  wallet: 'M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2zM16 14.5h.01',
+  road: 'M8 3 4 21M16 3l4 18M12 4v3M12 11v3M12 18v2',
+  trend: 'M3 17l6-6 4 4 8-8M15 7h6v6',
 } as const;
 
 export type IconName = keyof typeof PATHS;
