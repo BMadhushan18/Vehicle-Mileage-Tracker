@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    // During `npm run dev`, API calls go to `wrangler pages dev` running on 8788.
-    proxy: { '/api': 'http://localhost:8788' },
+    // During `npm run dev`, API calls go to `wrangler pages dev` running on 8790.
+    proxy: { '/api': 'http://localhost:8790' },
   },
   build: {
     target: 'es2020',

@@ -1,4 +1,5 @@
 import type { Handler, UserRow } from '../_lib/env';
+import { verifyAccessJwt } from '../_lib/access';
 import { HttpError, fail } from '../_lib/http';
 
 /**
@@ -9,13 +10,21 @@ import { HttpError, fail } from '../_lib/http';
  */
 export const onRequest: Handler = async (ctx) => {
   try {
-    const email = (
-      ctx.request.headers.get('Cf-Access-Authenticated-User-Email') ||
-      ctx.env.DEV_EMAIL ||
-      ''
-    )
-      .trim()
-      .toLowerCase();
+    const { ACCESS_TEAM_DOMAIN: team, ACCESS_AUD: aud, DEV_EMAIL } = ctx.env;
+    let raw: string | null = null;
+    if (team && aud) {
+      // Production: trust only a verified Access token, never the plain header alone.
+      raw = await verifyAccessJwt(ctx.request.headers.get('Cf-Access-Jwt-Assertion'), team, aud);
+    } else if (DEV_EMAIL) {
+      raw = DEV_EMAIL; // local development only
+    } else {
+      return fail(
+        503,
+        'not_configured',
+        'Sign-in is not set up yet. Ask the owner to finish the Cloudflare Access setup.',
+      );
+    }
+    const email = (raw ?? '').trim().toLowerCase();
     if (!email || !email.includes('@')) {
       return fail(401, 'not_signed_in', 'Please sign in to use RideLog, then reload the page.');
     }

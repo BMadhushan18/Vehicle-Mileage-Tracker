@@ -128,11 +128,11 @@ cp .dev.vars.example .dev.vars        # sets DEV_EMAIL=dev@example.com (local on
 npm run db:migrate:local
 npm run db:seed:local                 # optional sample data for dev@example.com
 npm run build
-npm run dev:api                       # API + built site on http://localhost:8788
+npm run dev:api                       # API + built site on http://localhost:8790
 ```
 
 For live-reload while editing the UI, keep `npm run dev:api` running and in another terminal run
-`npm run dev` (http://localhost:5173 – API calls are proxied to 8788).
+`npm run dev` (http://localhost:5173 – API calls are proxied to 8790).
 
 Sample data for a different email: `node scripts/make-seed.mjs you@example.com` then
 `npm run db:seed:local` (or `npx wrangler d1 execute ridelog-db --remote --file=seed/seed.sql` for the

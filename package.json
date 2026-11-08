@@ -6,9 +6,9 @@
   "description": "RideLog - bike mileage and fuel tracker on Cloudflare Pages + D1",
   "scripts": {
     "dev": "vite",
-    "dev:api": "wrangler pages dev --port 8788",
+    "dev:api": "wrangler pages dev --port 8790",
     "build": "npm run typecheck && vite build",
-    "preview": "npm run build && wrangler pages dev --port 8788",
+    "preview": "npm run build && wrangler pages dev --port 8790",
     "typecheck": "tsc -p tsconfig.json && tsc -p functions/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
