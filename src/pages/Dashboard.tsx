@@ -6,6 +6,7 @@ import { LazyChart } from '../charts/LazyChart';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { BikeLogo } from '../components/BikeLogo';
 import { FuelLeftCard } from '../components/FuelLeftCard';
+import { RideTrackerCard } from '../components/RideTrackerCard';
 import { Icon } from '../components/Icon';
 import { EmptyState, ErrorBox, Skeleton, SkeletonCards, StatCard } from '../components/ui';
 import { VehicleSwitcher } from '../components/VehicleSwitcher';
@@ -228,6 +229,8 @@ export function Dashboard() {
             format={fmtInt}
           />
         </div>
+
+        <RideTrackerCard r={r} />
 
         {r.entryCount > 0 && <FuelLeftCard key={r.vehicle.id} r={r} />}
 

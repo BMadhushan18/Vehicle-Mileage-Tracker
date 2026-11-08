@@ -1,4 +1,4 @@
-import type { FuelEntry, NoRideDay, Vehicle } from '../../shared/types';
+import type { FuelEntry, GpsDay, NoRideDay, Vehicle } from '../../shared/types';
 import { checkVehicle, type VehicleInput } from '../../shared/validate';
 import { HttpError, notFound, optNumber, optText } from './http';
 
@@ -13,21 +13,25 @@ export async function getVehicle(db: D1Database, userId: string, id: string): Pr
 
 /** One round trip: all fill-ups and no-ride days for a vehicle. */
 export async function loadVehicleData(db: D1Database, vehicleId: string) {
-  const [entries, days] = await db.batch([
+  const [entries, days, gps] = await db.batch([
     db
       .prepare('SELECT * FROM fuel_entries WHERE vehicle_id = ? ORDER BY entry_date, odometer')
       .bind(vehicleId),
     db.prepare('SELECT * FROM no_ride_days WHERE vehicle_id = ? ORDER BY day').bind(vehicleId),
+    db
+      .prepare('SELECT day, distance_km FROM gps_days WHERE vehicle_id = ? ORDER BY day')
+      .bind(vehicleId),
   ]);
   return {
     entries: entries.results as unknown as FuelEntry[],
     noRide: days.results as unknown as NoRideDay[],
+    gps: gps.results as unknown as GpsDay[],
   };
 }
 
 /** One round trip: everything that belongs to a user. */
 export async function loadUserData(db: D1Database, userId: string) {
-  const [vehicles, entries, days] = await db.batch([
+  const [vehicles, entries, days, gps] = await db.batch([
     db
       .prepare('SELECT * FROM vehicles WHERE user_id = ? ORDER BY is_archived, created_at')
       .bind(userId),
@@ -43,11 +47,18 @@ export async function loadUserData(db: D1Database, userId: string) {
          WHERE v.user_id = ? ORDER BY n.day`,
       )
       .bind(userId),
+    db
+      .prepare(
+        `SELECT g.vehicle_id, g.day, g.distance_km FROM gps_days g JOIN vehicles v ON v.id = g.vehicle_id
+         WHERE v.user_id = ? ORDER BY g.day`,
+      )
+      .bind(userId),
   ]);
   return {
     vehicles: vehicles.results as unknown as Vehicle[],
     entries: entries.results as unknown as FuelEntry[],
     noRide: days.results as unknown as NoRideDay[],
+    gps: gps.results as unknown as (GpsDay & { vehicle_id: string })[],
   };
 }
 

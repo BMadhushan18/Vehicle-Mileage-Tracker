@@ -131,6 +131,22 @@ export interface VehicleReport {
   entryCount: number;
   monthSpent: number;
   noRideToday: boolean;
+  gps: GpsSummary | null;
+}
+
+export interface GpsDay {
+  day: string;
+  distance_km: number;
+}
+
+export interface GpsSummary {
+  /** meter km / GPS km, learned from past full-tank periods (1 = no correction yet). */
+  factor: number;
+  periodsUsed: number;
+  sinceLastFillKm: number;
+  estimatedOdometer: number | null;
+  todayKm: number;
+  avgDailyKm: number | null;
 }
 
 export interface SaveFuelResult {

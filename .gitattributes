@@ -1,0 +1,5 @@
+# Keep Unix line endings for scripts run on Linux CI
+android/gradlew text eol=lf
+*.sh text eol=lf
+*.jar binary
+*.png binary

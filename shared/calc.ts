@@ -4,6 +4,8 @@
  */
 import type {
   FuelEntry,
+  GpsDay,
+  GpsSummary,
   MonthlyRow,
   PendingPeriod,
   Period,
@@ -210,8 +212,10 @@ export function buildVehicleReport(
   entries: FuelEntry[],
   noRideDays: string[],
   opts: { from?: string | null; to?: string | null; today?: string | null } = {},
+  gpsDays: GpsDay[] = [],
 ): VehicleReport {
   const { periods: all, pending } = computePeriods(entries, noRideDays);
+  const sortedEntries = sortEntries(entries);
   const periods = filterPeriods(all, opts.from, opts.to);
   const sorted = sortEntries(entries);
   const month = opts.today ? opts.today.slice(0, 7) : null;
@@ -228,6 +232,67 @@ export function buildVehicleReport(
     entryCount: entries.length,
     monthSpent,
     noRideToday: Boolean(opts.today && noRideDays.includes(opts.today)),
+    gps: gpsDays.length
+      ? gpsSummary(all, gpsDays, sortedEntries.at(-1) ?? null, opts.today ?? null)
+      : null,
+  };
+}
+
+/** Days with more GPS distance than this count as "tracked" when calibrating. */
+const MIN_COVERAGE = 0.6;
+
+/**
+ * Meter-to-GPS ratio from completed periods where GPS tracked most of the riding.
+ * Meter distance is the truth; GPS shows how it was spread over the days.
+ * Day range matches periods: start day excluded, end day included.
+ */
+export function gpsCalibration(
+  periods: Period[],
+  gpsDays: GpsDay[],
+): { factor: number; periodsUsed: number } {
+  let meter = 0;
+  let gps = 0;
+  let used = 0;
+  for (const p of periods) {
+    const g = gpsDays
+      .filter((d) => d.day > p.startDate && d.day <= p.endDate)
+      .reduce((s, d) => s + d.distance_km, 0);
+    if (p.distance > 0 && g >= p.distance * MIN_COVERAGE && g <= p.distance * 1.5) {
+      meter += p.distance;
+      gps += g;
+      used++;
+    }
+  }
+  // Keep the correction sane even if one period was odd.
+  const factor = gps > 0 ? Math.min(1.25, Math.max(0.8, meter / gps)) : 1;
+  return { factor, periodsUsed: used };
+}
+
+export function gpsSummary(
+  periods: Period[],
+  gpsDays: GpsDay[],
+  lastEntry: FuelEntry | null,
+  today: string | null,
+): GpsSummary {
+  const { factor, periodsUsed } = gpsCalibration(periods, gpsDays);
+  // GPS on the fill-up day itself is ambiguous (before or after the fill), so count from the next day.
+  const since = lastEntry
+    ? gpsDays.filter((d) => d.day > lastEntry.entry_date).reduce((s, d) => s + d.distance_km, 0) *
+      factor
+    : 0;
+  const recent = [...gpsDays]
+    .filter((d) => d.distance_km > 0.3 && (!today || d.day <= today))
+    .sort((a, b) => (a.day < b.day ? 1 : -1))
+    .slice(0, 14);
+  return {
+    factor,
+    periodsUsed,
+    sinceLastFillKm: since,
+    estimatedOdometer: lastEntry ? lastEntry.odometer + since : null,
+    todayKm: today ? (gpsDays.find((d) => d.day === today)?.distance_km ?? 0) * factor : 0,
+    avgDailyKm: recent.length
+      ? (recent.reduce((s, d) => s + d.distance_km, 0) / recent.length) * factor
+      : null,
   };
 }
 

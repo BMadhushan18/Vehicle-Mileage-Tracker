@@ -1805,3 +1805,38 @@ tbody th {
     display: none;
   }
 }
+
+/* GPS ride tracking */
+@keyframes live {
+  0% {
+    box-shadow: 0 0 0 0 rgb(22 163 74 / 55%);
+  }
+  80%,
+  100% {
+    box-shadow: 0 0 0 8px rgb(22 163 74 / 0%);
+  }
+}
+.tracker.is-live {
+  border-color: #bfe6cd;
+  box-shadow:
+    0 0 0 3px rgb(22 163 74 / 10%),
+    var(--shadow);
+}
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success-text);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: live 1.6s ease-out infinite;
+}

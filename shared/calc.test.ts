@@ -5,6 +5,8 @@ import {
   computePeriods,
   daysBetween,
   estimateFuelLeft,
+  gpsCalibration,
+  gpsSummary,
   filterPeriods,
   summarize,
 } from './calc';
@@ -382,5 +384,55 @@ describe('estimateFuelLeft', () => {
   it('returns no days when no daily distance is known', () => {
     const r = estimateFuelLeft({ ...base, dailyKm: null });
     expect(r.ok && r.daysLeft).toBeNull();
+  });
+});
+
+describe('GPS calibration', () => {
+  const entries = [
+    fill('2024-01-01', 1000, 10),
+    fill('2024-01-11', 1400, 10), // meter: 400 km
+    fill('2024-01-21', 1800, 10), // meter: 400 km
+  ];
+  const { periods } = computePeriods(entries);
+
+  it('learns meter/GPS ratio from well-tracked periods', () => {
+    const gps = [
+      { day: '2024-01-05', distance_km: 190 },
+      { day: '2024-01-10', distance_km: 190 }, // 380 GPS vs 400 meter
+      { day: '2024-01-15', distance_km: 50 }, // second period barely tracked: ignored
+    ];
+    const c = gpsCalibration(periods, gps);
+    expect(c.periodsUsed).toBe(1);
+    expect(c.factor).toBeCloseTo(400 / 380);
+  });
+
+  it('ignores GPS on the start day of a period', () => {
+    const c = gpsCalibration(periods, [{ day: '2024-01-01', distance_km: 400 }]);
+    expect(c.periodsUsed).toBe(0);
+    expect(c.factor).toBe(1);
+  });
+
+  it('estimates the meter reading now from GPS since the last fill-up', () => {
+    const gps = [
+      { day: '2024-01-05', distance_km: 190 },
+      { day: '2024-01-10', distance_km: 190 },
+      { day: '2024-01-21', distance_km: 9 }, // fill-up day: not counted
+      { day: '2024-01-22', distance_km: 38 },
+      { day: '2024-01-23', distance_km: 19 },
+    ];
+    const s = gpsSummary(periods, gps, entries[2], '2024-01-23');
+    const f = 400 / 380;
+    expect(s.sinceLastFillKm).toBeCloseTo(57 * f);
+    expect(s.estimatedOdometer).toBeCloseTo(1800 + 57 * f);
+    expect(s.todayKm).toBeCloseTo(19 * f);
+    expect(s.avgDailyKm).toBeCloseTo(((190 + 190 + 9 + 38 + 19) / 5) * f);
+  });
+
+  it('adds a gps block to the vehicle report only when GPS data exists', () => {
+    expect(buildVehicleReport(vehicle, entries, [], {}).gps).toBeNull();
+    const r = buildVehicleReport(vehicle, entries, [], { today: '2024-01-22' }, [
+      { day: '2024-01-22', distance_km: 30 },
+    ]);
+    expect(r.gps?.estimatedOdometer).toBe(1830);
   });
 });

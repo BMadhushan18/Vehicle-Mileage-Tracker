@@ -12,13 +12,14 @@ export const onRequestGet: Handler<'id'> = async ({ request, env, data, params }
     const s = q.get(k);
     return isValidISODate(s) ? s : null;
   };
-  const { entries, noRide } = await loadVehicleData(env.DB, v.id);
+  const { entries, noRide, gps } = await loadVehicleData(env.DB, v.id);
   return json(
     buildVehicleReport(
       v,
       entries,
       noRide.map((d) => d.day),
       { from: pick('from'), to: pick('to'), today: pick('today') },
+      gps,
     ),
   );
 };

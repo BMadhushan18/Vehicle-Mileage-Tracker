@@ -8,7 +8,28 @@ import { HttpError, fail } from '../_lib/http';
  * 2. Finds or creates the user row.
  * 3. Turns thrown errors into friendly JSON.
  */
+/** The Android app (Capacitor) serves its files from these origins and calls this API. */
+const APP_ORIGINS = new Set(['https://localhost', 'http://localhost', 'capacitor://localhost']);
+
+function withCors(res: Response, origin: string | null): Response {
+  if (!origin || !APP_ORIGINS.has(origin)) return res;
+  const out = new Response(res.body, res);
+  out.headers.set('Access-Control-Allow-Origin', origin);
+  out.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  out.headers.set('Access-Control-Allow-Headers', 'content-type');
+  out.headers.set('Access-Control-Max-Age', '86400');
+  out.headers.append('Vary', 'Origin');
+  return out;
+}
+
 export const onRequest: Handler = async (ctx) => {
+  const origin = ctx.request.headers.get('Origin');
+  if (ctx.request.method === 'OPTIONS')
+    return withCors(new Response(null, { status: 204 }), origin);
+  return withCors(await handle(ctx), origin);
+};
+
+const handle: Handler = async (ctx) => {
   try {
     const { ACCESS_TEAM_DOMAIN: team, ACCESS_AUD: aud, DEV_EMAIL } = ctx.env;
     let raw: string | null = null;

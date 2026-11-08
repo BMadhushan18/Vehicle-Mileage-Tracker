@@ -41,6 +41,7 @@ export function FuelForm({ editId }: { editId?: string | null }) {
   const [note, setNote] = useState('');
 
   const [entries, setEntries] = useState<FuelEntry[] | null>(null);
+  const [gpsOdo, setGpsOdo] = useState<number | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(Boolean(editId));
   const [loadError, setLoadError] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -99,6 +100,20 @@ export function FuelForm({ editId }: { editId?: string | null }) {
     };
   }, [vehicleId, editId]);
 
+  // GPS estimate of the meter right now, to help on fill-up day (add mode only).
+  useEffect(() => {
+    setGpsOdo(null);
+    if (!vehicleId || editId) return;
+    let alive = true;
+    api
+      .report(vehicleId, { today: todayISO() })
+      .then((rep) => alive && setGpsOdo(rep.gps?.estimatedOdometer ?? null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [vehicleId, editId]);
+
   const vehicle = (vehicles ?? []).find((v) => v.id === vehicleId);
   const lastEntry = useMemo(() => {
     const others = (entries ?? []).filter((e) => e.id !== editId && e.entry_date <= date);
@@ -147,6 +162,16 @@ export function FuelForm({ editId }: { editId?: string | null }) {
     if (check.errors.length) {
       setErrors(check.errors);
       return;
+    }
+    // GPS cross-check: catch typos like 2135 instead of 21135 (today's fill-ups only).
+    if (gpsOdo && lastEntry && date === todayISO()) {
+      const expected = gpsOdo - lastEntry.odometer;
+      const typed = candidate.odometer - lastEntry.odometer;
+      if (expected > 20 && Math.abs(typed - expected) > Math.max(30, expected * 0.25)) {
+        check.warnings.push(
+          `GPS says the meter should be about ${num(gpsOdo, 0)}. Please check the reading.`,
+        );
+      }
     }
     // Warnings: show once, then the user can choose "Save anyway".
     if (check.warnings.length && !warnings.length) {
@@ -237,7 +262,7 @@ export function FuelForm({ editId }: { editId?: string | null }) {
           entries === null
             ? 'Loading last reading…'
             : lastEntry
-              ? `Last reading: ${num(lastEntry.odometer, 1)} on ${formatDate(lastEntry.entry_date, settings.date_format)}`
+              ? `Last reading: ${num(lastEntry.odometer, 1)} on ${formatDate(lastEntry.entry_date, settings.date_format)}${gpsOdo ? ` · GPS estimate now ≈ ${num(gpsOdo, 0)}` : ''}`
               : 'This is the first fill-up for this vehicle.'
         }
       >

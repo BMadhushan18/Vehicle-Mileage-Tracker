@@ -23,7 +23,12 @@ export function FuelLeftCard({ r }: { r: VehicleReport }) {
   const u = unitLabel(settings.distance_unit);
   const last = r.lastEntry;
 
-  const [odo, setOdo] = useState(() => readSaved(v.id) ?? (last ? String(last.odometer) : ''));
+  // GPS estimate is the freshest guess; otherwise the last reading typed here, then the last fill-up.
+  const gpsOdo =
+    r.gps?.estimatedOdometer != null ? String(Math.round(r.gps.estimatedOdometer * 10) / 10) : null;
+  const [odo, setOdo] = useState(
+    () => gpsOdo ?? readSaved(v.id) ?? (last ? String(last.odometer) : ''),
+  );
   const [daily, setDaily] = useState(v.daily_km != null ? String(v.daily_km) : '');
   const [savingDaily, setSavingDaily] = useState(false);
 
@@ -33,7 +38,9 @@ export function FuelLeftCard({ r }: { r: VehicleReport }) {
     : last && last.is_full_tank
       ? last.odometer
       : null;
-  const historyDaily = r.summary.avgKmPerRidingDay > 0 ? r.summary.avgKmPerRidingDay : null;
+  const gpsDaily = r.gps?.avgDailyKm ?? null;
+  const historyDaily =
+    gpsDaily ?? (r.summary.avgKmPerRidingDay > 0 ? r.summary.avgKmPerRidingDay : null);
   const dailyKm = Number.isFinite(toNum(daily)) && toNum(daily) > 0 ? toNum(daily) : historyDaily;
 
   const est = estimateFuelLeft({
@@ -176,7 +183,7 @@ export function FuelLeftCard({ r }: { r: VehicleReport }) {
           </div>
           {!daily && historyDaily && (
             <div className="field-hint">
-              Using your history: {num(historyDaily, 0)} {u}/day
+              Using your {gpsDaily ? 'GPS rides' : 'history'}: {num(historyDaily, 0)} {u}/day
             </div>
           )}
         </div>

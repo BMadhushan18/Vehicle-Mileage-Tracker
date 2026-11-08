@@ -1,7 +1,7 @@
 // Generates public/icon-192.png and public/icon-512.png (no dependencies).
 // Same motorbike design as public/icon.svg, rendered with 4x4 anti-aliasing.
 // Run: node scripts/make-icons.mjs
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
@@ -75,7 +75,13 @@ function bg(x, y) {
   return col;
 }
 
-function makeIcon(size) {
+/**
+ * opts.bg: draw the gradient (false = transparent, for Android adaptive foreground)
+ * opts.scale: shrink the artwork around the centre (adaptive icons need a safe zone)
+ * opts.circle: clip to a circle (Android round icon)
+ */
+function makeIcon(size, opts = {}) {
+  const { bg: withBg = true, scale = 1, circle = false } = opts;
   const s = size / 512;
   const SS = 4;
   const rows = [];
@@ -85,20 +91,31 @@ function makeIcon(size) {
       let r = 0;
       let g = 0;
       let b = 0;
+      let a = 0;
       for (let sy = 0; sy < SS; sy++) {
         for (let sx = 0; sx < SS; sx++) {
           const px = (x + (sx + 0.5) / SS) / s;
           const py = (y + (sy + 0.5) / SS) / s;
-          let col = bg(px, py); // full bleed so it also works as a maskable icon
-          if (isRoad(px, py)) col = [147, 197, 253];
-          if (isBike(px, py)) col = [255, 255, 255];
-          r += col[0];
-          g += col[1];
-          b += col[2];
+          const ax = 256 + (px - 256) / scale;
+          const ay = 256 + (py - 256) / scale;
+          let col = withBg ? bg(px, py) : null; // full bleed so it also works as a maskable icon
+          if (isRoad(ax, ay)) col = [147, 197, 253];
+          if (isBike(ax, ay)) col = [255, 255, 255];
+          if (circle && Math.hypot(px - 256, py - 256) > 256) col = null;
+          if (col) {
+            r += col[0];
+            g += col[1];
+            b += col[2];
+            a += 255;
+          }
         }
       }
       const n = SS * SS;
-      row.set([Math.round(r / n), Math.round(g / n), Math.round(b / n), 255], 1 + x * 4);
+      const k = a / 255 || 1; // average colour over covered samples only
+      row.set(
+        [Math.round(r / k), Math.round(g / k), Math.round(b / k), Math.round(a / n)],
+        1 + x * 4,
+      );
     }
     rows.push(row);
   }
@@ -118,4 +135,21 @@ function makeIcon(size) {
 for (const size of [192, 512]) {
   writeFileSync(new URL(`../public/icon-${size}.png`, import.meta.url), makeIcon(size));
   console.log(`wrote public/icon-${size}.png`);
+}
+
+// Android launcher icons (only if the Capacitor Android project exists).
+const res = new URL('../android/app/src/main/res/', import.meta.url);
+if (existsSync(res)) {
+  const densities = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+  for (const [d, m] of Object.entries(densities)) {
+    const dir = new URL(`mipmap-${d}/`, res);
+    writeFileSync(new URL('ic_launcher.png', dir), makeIcon(48 * m));
+    writeFileSync(new URL('ic_launcher_round.png', dir), makeIcon(48 * m, { circle: true }));
+    // Adaptive foreground: 108dp canvas, artwork inside the 66dp safe zone.
+    writeFileSync(
+      new URL('ic_launcher_foreground.png', dir),
+      makeIcon(108 * m, { bg: false, scale: 0.62 }),
+    );
+  }
+  console.log('wrote Android launcher icons');
 }

@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RideLog</string>
+    <string name="title_activity_main">RideLog</string>
+    <string name="package_name">app.ridelog.mileage</string>
+    <string name="custom_url_scheme">app.ridelog.mileage</string>
+    <string name="capacitor_background_geolocation_notification_channel_name">Ride tracking</string>
+    <string name="capacitor_background_geolocation_notification_color">#1D4ED8</string>
+</resources>

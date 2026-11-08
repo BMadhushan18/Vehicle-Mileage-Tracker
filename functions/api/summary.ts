@@ -15,9 +15,10 @@ export const onRequestGet: Handler = async ({ request, env, data }) => {
     return isValidISODate(s) ? s : null;
   };
   const opts = { from: pick('from'), to: pick('to'), today: pick('today') };
-  const { vehicles, entries, noRide } = await loadUserData(env.DB, data.user.id);
+  const { vehicles, entries, noRide, gps } = await loadUserData(env.DB, data.user.id);
   const entriesBy = groupBy(entries, (e) => e.vehicle_id);
   const daysBy = groupBy(noRide, (d) => d.vehicle_id);
+  const gpsBy = groupBy(gps, (d) => d.vehicle_id);
   const reports = vehicles
     .filter((v) => q.get('archived') === '1' || !v.is_archived)
     .map((v) =>
@@ -26,6 +27,7 @@ export const onRequestGet: Handler = async ({ request, env, data }) => {
         entriesBy.get(v.id) ?? [],
         (daysBy.get(v.id) ?? []).map((d) => d.day),
         opts,
+        gpsBy.get(v.id) ?? [],
       ),
     );
   return json({ reports });

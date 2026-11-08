@@ -1,6 +1,7 @@
 import type {
   ExportData,
   FuelEntry,
+  GpsDay,
   NoRideDay,
   NoRideReason,
   SaveFuelResult,
@@ -10,6 +11,11 @@ import type {
   VehicleWithStats,
 } from '../shared/types';
 import type { FuelCandidate, VehicleInput } from '../shared/validate';
+
+/**
+ * Web: same origin (''). Android app: the live site, set by VITE_API_BASE in .env.android.
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '';
 
 export class ApiError extends Error {
   constructor(
@@ -25,9 +31,9 @@ export class ApiError extends Error {
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`/api${path}`, {
+    res = await fetch(`${API_BASE}/api${path}`, {
       method,
-      credentials: 'same-origin',
+      credentials: API_BASE ? 'omit' : 'same-origin',
       headers: body === undefined ? undefined : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -98,6 +104,11 @@ export const api = {
     request<VehicleReport>('GET', `/vehicles/${vehicleId}/report${qs(p)}`),
   summary: (p: { from?: string; to?: string; today?: string }) =>
     request<{ reports: VehicleReport[] }>('GET', `/summary${qs(p)}`),
+
+  gpsDays: (vehicleId: string, from?: string, to?: string) =>
+    request<GpsDay[]>('GET', `/vehicles/${vehicleId}/gps${qs({ from, to })}`),
+  saveGpsDays: (vehicleId: string, days: GpsDay[]) =>
+    request<{ saved: number }>('POST', `/vehicles/${vehicleId}/gps`, { days }),
 
   exportAll: () => request<ExportData>('GET', '/export'),
   importAll: (data: unknown, replace: boolean) =>
