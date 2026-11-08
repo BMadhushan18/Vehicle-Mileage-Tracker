@@ -1,0 +1,11 @@
+# Cloudflare Pages project config (used by `wrangler pages dev` and Pages builds)
+name = "ridelog"
+pages_build_output_dir = "./dist"
+compatibility_date = "2024-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ridelog-db"
+# Replace with the id printed by: npx wrangler d1 create ridelog-db
+database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+migrations_dir = "migrations"
