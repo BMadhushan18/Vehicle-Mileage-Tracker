@@ -11,7 +11,7 @@ export const onRequestPut: Handler<'id'> = async ({ request, env, data, params }
   const input = parseVehicle(await readJson(request), existing);
   const v = await env.DB.prepare(
     `UPDATE vehicles SET name = ?, type = ?, plate_number = ?, fuel_type = ?, tank_capacity_liters = ?,
-       start_odometer = ?, color_tag = ?, is_archived = ?
+       start_odometer = ?, color_tag = ?, is_archived = ?, daily_km = ?
      WHERE id = ? AND user_id = ? RETURNING *`,
   )
     .bind(
@@ -23,6 +23,7 @@ export const onRequestPut: Handler<'id'> = async ({ request, env, data, params }
       input.start_odometer,
       input.color_tag,
       input.is_archived,
+      input.daily_km,
       existing.id,
       data.user.id,
     )

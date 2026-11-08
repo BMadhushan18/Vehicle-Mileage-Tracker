@@ -24,6 +24,7 @@ export interface Vehicle {
   fuel_type: FuelType;
   tank_capacity_liters: number | null;
   start_odometer: number | null;
+  daily_km: number | null;
   color_tag: string;
   is_archived: number;
   created_at: string;

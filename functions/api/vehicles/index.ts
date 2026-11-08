@@ -44,8 +44,8 @@ export const onRequestPost: Handler = async ({ request, env, data }) => {
 
   const v = await env.DB.prepare(
     `INSERT INTO vehicles (id, user_id, name, type, plate_number, fuel_type, tank_capacity_liters,
-       start_odometer, color_tag, is_archived)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+       start_odometer, color_tag, is_archived, daily_km)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
   )
     .bind(
       crypto.randomUUID(),
@@ -58,6 +58,7 @@ export const onRequestPost: Handler = async ({ request, env, data }) => {
       input.start_odometer,
       input.color_tag,
       input.is_archived,
+      input.daily_km,
     )
     .first<Vehicle>();
   return json(v, 201);

@@ -25,6 +25,7 @@ const emptyForm = (): VehicleInput => ({
   fuel_type: 'petrol',
   tank_capacity_liters: null,
   start_odometer: null,
+  daily_km: null,
   color_tag: COLORS[0],
   is_archived: 0,
 });
@@ -229,6 +230,7 @@ function VehicleForm({
           fuel_type: vehicle.fuel_type,
           tank_capacity_liters: vehicle.tank_capacity_liters,
           start_odometer: vehicle.start_odometer,
+          daily_km: vehicle.daily_km,
           color_tag: vehicle.color_tag,
           is_archived: vehicle.is_archived,
         }
@@ -236,6 +238,7 @@ function VehicleForm({
   );
   const [tank, setTank] = useState(vehicle?.tank_capacity_liters?.toString() ?? '');
   const [start, setStart] = useState(vehicle?.start_odometer?.toString() ?? '');
+  const [daily, setDaily] = useState(vehicle?.daily_km?.toString() ?? '');
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -253,6 +256,7 @@ function VehicleForm({
       plate_number: form.plate_number?.trim() || null,
       tank_capacity_liters: toNumOrNull(tank),
       start_odometer: toNumOrNull(start),
+      daily_km: toNumOrNull(daily),
     };
     const errs = checkVehicle(input);
     if (errs.length) return setErrors(errs);
@@ -334,6 +338,19 @@ function VehicleForm({
           />
         </Field>
       </div>
+      <Field
+        label="Normal riding per day (optional)"
+        htmlFor="v-daily"
+        hint="Used to guess how many days your fuel will last."
+      >
+        <input
+          id="v-daily"
+          inputMode="decimal"
+          placeholder="e.g. 30"
+          value={daily}
+          onChange={(e) => setDaily(e.target.value)}
+        />
+      </Field>
       <fieldset className="field">
         <legend>Color</legend>
         <div className="swatches" role="radiogroup" aria-label="Color">

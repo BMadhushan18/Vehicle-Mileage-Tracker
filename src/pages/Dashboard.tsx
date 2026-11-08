@@ -5,6 +5,7 @@ import { api } from '../api';
 import { LazyChart } from '../charts/LazyChart';
 import { Icon } from '../components/Icon';
 import { EmptyState, ErrorBox, SkeletonCards, StatCard } from '../components/ui';
+import { FuelLeftCard } from '../components/FuelLeftCard';
 import { VehicleSwitcher } from '../components/VehicleSwitcher';
 import {
   fixed,
@@ -162,6 +163,8 @@ export function Dashboard() {
           />
           <StatCard label="Spent this month" value={money(r.monthSpent, settings.currency)} />
         </div>
+
+        <FuelLeftCard key={r.vehicle.id} r={r} />
 
         {!s.periodCount && (
           <div className="alert alert-info">

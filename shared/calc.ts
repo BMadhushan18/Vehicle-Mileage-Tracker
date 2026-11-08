@@ -230,3 +230,59 @@ export function buildVehicleReport(
     noRideToday: Boolean(opts.today && noRideDays.includes(opts.today)),
   };
 }
+
+export interface FuelEstimateInput {
+  /** Odometer at the last FULL tank. */
+  lastFullOdometer: number | null;
+  /** Liters added by part fills since that full tank. */
+  partialLiters: number;
+  tankCapacity: number | null;
+  /** Usually the vehicle's average km/L. */
+  kmPerLiter: number;
+  currentOdometer: number;
+  /** Normal riding distance per day. */
+  dailyKm: number | null;
+}
+
+export type FuelEstimate =
+  | {
+      ok: true;
+      distanceSinceFull: number;
+      fuelUsed: number;
+      fuelLeft: number;
+      /** 0-100 */
+      percentLeft: number;
+      rangeKm: number;
+      daysLeft: number | null;
+      /** True when the reading suggests more fuel was used than the tank holds. */
+      overdue: boolean;
+    }
+  | { ok: false; reason: 'no_tank' | 'no_full_fill' | 'no_average' | 'reading_too_low' };
+
+/**
+ * Rough "fuel left" estimate: the tank was full at the last full fill-up,
+ * part fills added fuel, and riding since then used distance / average km/L.
+ */
+export function estimateFuelLeft(i: FuelEstimateInput): FuelEstimate {
+  if (!i.tankCapacity || i.tankCapacity <= 0) return { ok: false, reason: 'no_tank' };
+  if (i.lastFullOdometer === null) return { ok: false, reason: 'no_full_fill' };
+  if (!(i.kmPerLiter > 0)) return { ok: false, reason: 'no_average' };
+  const distanceSinceFull = i.currentOdometer - i.lastFullOdometer;
+  if (!Number.isFinite(distanceSinceFull) || distanceSinceFull < 0)
+    return { ok: false, reason: 'reading_too_low' };
+
+  const fuelUsed = distanceSinceFull / i.kmPerLiter;
+  const raw = i.tankCapacity + i.partialLiters - fuelUsed;
+  const fuelLeft = Math.min(i.tankCapacity, Math.max(0, raw));
+  const rangeKm = fuelLeft * i.kmPerLiter;
+  return {
+    ok: true,
+    distanceSinceFull,
+    fuelUsed,
+    fuelLeft,
+    percentLeft: (fuelLeft / i.tankCapacity) * 100,
+    rangeKm,
+    daysLeft: i.dailyKm && i.dailyKm > 0 ? rangeKm / i.dailyKm : null,
+    overdue: raw < 0,
+  };
+}

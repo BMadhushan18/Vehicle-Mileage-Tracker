@@ -1068,3 +1068,52 @@ tbody th {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* Fuel left estimate */
+.gauge {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--noride);
+  overflow: hidden;
+}
+.gauge span {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  transition: width 0.3s;
+}
+.gauge.low span {
+  background: var(--warning);
+}
+.estimate-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.estimate-grid div {
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+.estimate-grid dt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.estimate-grid dd {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.input-row {
+  display: flex;
+  gap: 6px;
+}
+.input-row .btn {
+  flex-shrink: 0;
+  min-height: 46px;
+}

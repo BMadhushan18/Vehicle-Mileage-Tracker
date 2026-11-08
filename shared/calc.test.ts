@@ -4,6 +4,7 @@ import {
   compareToAverage,
   computePeriods,
   daysBetween,
+  estimateFuelLeft,
   filterPeriods,
   summarize,
 } from './calc';
@@ -40,6 +41,7 @@ const vehicle: Vehicle = {
   fuel_type: 'petrol',
   tank_capacity_liters: 12,
   start_odometer: null,
+  daily_km: null,
   color_tag: '#3B82F6',
   is_archived: 0,
   created_at: '2024-01-01',
@@ -322,5 +324,63 @@ describe('validation', () => {
       '2024-02-29',
       '2024-03-01',
     ]);
+  });
+});
+
+describe('estimateFuelLeft', () => {
+  const base = {
+    lastFullOdometer: 1000,
+    partialLiters: 0,
+    tankCapacity: 12,
+    kmPerLiter: 40,
+    currentOdometer: 1200,
+    dailyKm: 40,
+  };
+
+  it('estimates fuel left, range and days', () => {
+    const r = estimateFuelLeft(base);
+    if (!r.ok) throw new Error('expected ok');
+    expect(r.fuelUsed).toBe(5); // 200 km / 40 km/L
+    expect(r.fuelLeft).toBe(7);
+    expect(r.rangeKm).toBe(280);
+    expect(r.daysLeft).toBe(7);
+    expect(r.percentLeft).toBeCloseTo(58.33);
+  });
+
+  it('adds part fills but never above a full tank', () => {
+    const r = estimateFuelLeft({ ...base, partialLiters: 3 });
+    expect(r.ok && r.fuelLeft).toBe(10);
+    const capped = estimateFuelLeft({ ...base, partialLiters: 20 });
+    expect(capped.ok && capped.fuelLeft).toBe(12);
+  });
+
+  it('shows zero and flags it when the tank should be empty', () => {
+    const r = estimateFuelLeft({ ...base, currentOdometer: 2000 });
+    expect(r.ok && r.fuelLeft).toBe(0);
+    expect(r.ok && r.overdue).toBe(true);
+  });
+
+  it('explains when it cannot estimate', () => {
+    expect(estimateFuelLeft({ ...base, tankCapacity: null })).toEqual({
+      ok: false,
+      reason: 'no_tank',
+    });
+    expect(estimateFuelLeft({ ...base, lastFullOdometer: null })).toEqual({
+      ok: false,
+      reason: 'no_full_fill',
+    });
+    expect(estimateFuelLeft({ ...base, kmPerLiter: 0 })).toEqual({
+      ok: false,
+      reason: 'no_average',
+    });
+    expect(estimateFuelLeft({ ...base, currentOdometer: 900 })).toEqual({
+      ok: false,
+      reason: 'reading_too_low',
+    });
+  });
+
+  it('returns no days when no daily distance is known', () => {
+    const r = estimateFuelLeft({ ...base, dailyKm: null });
+    expect(r.ok && r.daysLeft).toBeNull();
   });
 });

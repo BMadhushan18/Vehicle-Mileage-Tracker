@@ -72,6 +72,7 @@ export function parseVehicle(body: Record<string, unknown>, base?: Vehicle): Veh
     fuel_type: (pick('fuel_type') ?? 'petrol') as VehicleInput['fuel_type'],
     tank_capacity_liters: optNumber(pick('tank_capacity_liters')),
     start_odometer: optNumber(pick('start_odometer')),
+    daily_km: optNumber(pick('daily_km')),
     color_tag: String(pick('color_tag') ?? '#3B82F6'),
     is_archived: Number(pick('is_archived') ?? 0) ? 1 : 0,
   };

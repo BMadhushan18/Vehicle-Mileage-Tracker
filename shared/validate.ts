@@ -158,6 +158,7 @@ export interface VehicleInput {
   fuel_type: FuelType;
   tank_capacity_liters: number | null;
   start_odometer: number | null;
+  daily_km: number | null;
   color_tag: string;
   is_archived: number;
 }
@@ -181,6 +182,8 @@ export function checkVehicle(v: VehicleInput): string[] {
     (!Number.isFinite(v.start_odometer) || v.start_odometer < 0 || v.start_odometer > MAX_ODOMETER)
   )
     errors.push('Starting reading must be a positive number.');
+  if (v.daily_km != null && (!Number.isFinite(v.daily_km) || v.daily_km <= 0 || v.daily_km > 2000))
+    errors.push('Daily distance must be a number between 0 and 2000.');
   if (!/^#[0-9a-fA-F]{6}$/.test(v.color_tag)) errors.push('Please pick a color.');
   return errors;
 }

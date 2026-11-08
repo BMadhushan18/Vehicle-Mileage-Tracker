@@ -41,6 +41,7 @@ export const onRequestPost: Handler = async ({ request, env, data }) => {
       fuel_type: FUEL_TYPES.includes(v.fuel_type as never) ? v.fuel_type : 'petrol',
       tank_capacity_liters: optNumber(v.tank_capacity_liters),
       start_odometer: optNumber(v.start_odometer),
+      daily_km: optNumber(v.daily_km),
       color_tag: /^#[0-9a-fA-F]{6}$/.test(String(v.color_tag)) ? v.color_tag : '#3B82F6',
       is_archived: Number(v.is_archived) ? 1 : 0,
     };
@@ -109,9 +110,9 @@ export const onRequestPost: Handler = async ({ request, env, data }) => {
     db
       .prepare(
         `INSERT INTO vehicles (id, user_id, name, type, plate_number, fuel_type, tank_capacity_liters,
-           start_odometer, color_tag, is_archived)
+           start_odometer, color_tag, is_archived, daily_km)
          SELECT ${j('id')}, ?1, ${j('name')}, ${j('type')}, ${j('plate_number')}, ${j('fuel_type')},
-           ${j('tank_capacity_liters')}, ${j('start_odometer')}, ${j('color_tag')}, ${j('is_archived')}
+           ${j('tank_capacity_liters')}, ${j('start_odometer')}, ${j('color_tag')}, ${j('is_archived')}, ${j('daily_km')}
          FROM json_each(?2)`,
       )
       .bind(uid, JSON.stringify(vRows)),
