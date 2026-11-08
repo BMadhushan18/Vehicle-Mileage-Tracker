@@ -2,6 +2,8 @@ export interface Env {
   DB: D1Database;
   /** Only for local dev (set in .dev.vars). Never set this in production. */
   DEV_EMAIL?: string;
+  /** Owner email used when sign-in (Access) is not set up. */
+  OWNER_EMAIL?: string;
   /** Your Zero Trust team domain, e.g. "myteam.cloudflareaccess.com". */
   ACCESS_TEAM_DOMAIN?: string;
   /** The "Application Audience (AUD) Tag" of the Access application. */

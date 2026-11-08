@@ -15,14 +15,9 @@ export const onRequest: Handler = async (ctx) => {
     if (team && aud) {
       // Production: trust only a verified Access token, never the plain header alone.
       raw = await verifyAccessJwt(ctx.request.headers.get('Cf-Access-Jwt-Assertion'), team, aud);
-    } else if (DEV_EMAIL) {
-      raw = DEV_EMAIL; // local development only
     } else {
-      return fail(
-        503,
-        'not_configured',
-        'Sign-in is not set up yet. Ask the owner to finish the Cloudflare Access setup.',
-      );
+      // Single-owner mode (no sign-in): all data belongs to one owner account.
+      raw = DEV_EMAIL || ctx.env.OWNER_EMAIL || 'owner@ridelog.app';
     }
     const email = (raw ?? '').trim().toLowerCase();
     if (!email || !email.includes('@')) {

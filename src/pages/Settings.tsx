@@ -207,10 +207,8 @@ export default function SettingsPage() {
 
       <section className="card">
         <h2 className="card-title">Account</h2>
-        <p className="small">
-          Signed in as <strong>{settings.email || '…'}</strong>
-        </p>
-        <p className="muted small">Your data is private to this email address.</p>
+        <p className="small">Personal app – no sign-in needed.</p>
+        <p className="muted small">Anyone with the link can open it, so keep the link private.</p>
       </section>
 
       <Modal
