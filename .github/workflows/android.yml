@@ -82,7 +82,7 @@ jobs:
           for attempt in 1 2 3 4; do
             if ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle.log"; [ "${PIPESTATUS[0]}" = 0 ]; then break; fi
             # Surface the real error as public annotations (full logs need a GitHub login).
-            grep -E "What went wrong|FAILURE|error:|Error|Could not|> " "$RUNNER_TEMP/gradle.log" | grep -v "^> Task" | head -25 | while IFS= read -r line; do echo "::error::${line:0:900}"; done
+            { grep -A14 -E "What went wrong|^\* Where" "$RUNNER_TEMP/gradle.log"; grep -E "Caused by|Exception:" "$RUNNER_TEMP/gradle.log" | head -12; } | grep -v "^\s*at \|^--$" | head -40 | while IFS= read -r line; do echo "::error::${line:0:900}"; done
             # Only a failed Gradle download is worth retrying; real build errors stop here.
             if ! grep -q "Could not install Gradle" "$RUNNER_TEMP/gradle.log" || [ "$attempt" = 4 ]; then exit 1; fi
             echo "Gradle download failed (attempt $attempt), retrying in $((attempt * 60))s..."
